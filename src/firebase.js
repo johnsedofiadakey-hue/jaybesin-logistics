@@ -1,33 +1,17 @@
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-/**
- * FIREBASE CONFIGURATION
- * ------------------------------------------------
- * 1. Go to: https://console.firebase.google.com/
- * 2. Click "Add Project" and follow the steps.
- * 3. Once created, click the Web icon (</>) to add an app.
- * 4. Copy the "firebaseConfig" object they show you.
- * 5. REPLACE the object below with YOURS.
- */
-
-// --- PASTE YOUR CONFIG HERE ---
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyD...",             // <--- Replace with YOUR real apiKey
+  apiKey: "AIzaSyBalkWvwfQdb7gAFr6vf6fIFqM5TBzHEPg",
   authDomain: "jaybesin-logistics.firebaseapp.com",
   projectId: "jaybesin-logistics",
-  storageBucket: "jaybesin-logistics.appspot.com",
-  messagingSenderId: "123456789",   // <--- Replace with YOUR real ID
-  appId: "1:123456789:web:abcdef"   // <--- Replace with YOUR real appId
+  storageBucket: "jaybesin-logistics.firebasestorage.app",
+  messagingSenderId: "887610003602",
+  appId: "1:887610003602:web:62c4574b81de463cff964b"
 };
-// ------------------------------
 
-// Initialize Firebase App
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize Database (Firestore) - Used for Shipments, Vehicles, Products
-export const db = getFirestore(app);
-
-// Initialize Storage - Ready for future image hosting upgrades
-export const storage = getStorage(app);
