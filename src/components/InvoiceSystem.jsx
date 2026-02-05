@@ -663,63 +663,110 @@ const OperationsDashboard = () => {
          {/* REGISTRY DATA TABLE */}
          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             {activeTab === 'all' ? (
-               <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                     <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
-                        <tr>
-                           <th className="p-4 w-32">Tracking ID</th>
-                           <th className="p-4">Client Details</th>
-                           <th className="p-4 text-right">Total Cost</th>
-                           <th className="p-4 text-right w-32">Action</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-100">
-                        {shipments.map(s => (
-                           <tr key={s.id} className="hover:bg-slate-50 transition-colors group">
-                              <td className="p-4 font-mono text-blue-600 font-medium">{s.trackingNumber}</td>
-                              <td className="p-4">
-                                 <div className="font-medium text-slate-900">{s.consigneeName}</div>
-                                 <div className="text-xs text-slate-400 mt-0.5">{s.consigneePhone}</div>
-                              </td>
-                              <td className="p-4 text-right font-medium text-slate-900">${s.totalCost}</td>
-                              <td className="p-4 text-right">
-                                 <button onClick={() => handleGenerate(s, 'invoice')} className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:border-blue-300 hover:text-blue-600 transition-all flex items-center gap-1.5 ml-auto shadow-sm"><Plus size={14} /> Create</button>
-                              </td>
+               <>
+                  {/* DESKTOP TABLE */}
+                  <div className="hidden md:block overflow-x-auto">
+                     <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                           <tr>
+                              <th className="p-4 w-32">Tracking ID</th>
+                              <th className="p-4">Client Details</th>
+                              <th className="p-4 text-right">Total Cost</th>
+                              <th className="p-4 text-right w-32">Action</th>
                            </tr>
-                        ))}
-                        {shipments.length === 0 && <tr><td colSpan="4" className="p-12 text-center text-slate-400 italic">No shipments found in registry.</td></tr>}
-                     </tbody>
-                  </table>
-               </div>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                           {shipments.map(s => (
+                              <tr key={s.id} className="hover:bg-slate-50 transition-colors group">
+                                 <td className="p-4 font-mono text-blue-600 font-medium">{s.trackingNumber}</td>
+                                 <td className="p-4">
+                                    <div className="font-medium text-slate-900">{s.consigneeName}</div>
+                                    <div className="text-xs text-slate-400 mt-0.5">{s.consigneePhone}</div>
+                                 </td>
+                                 <td className="p-4 text-right font-medium text-slate-900">${s.totalCost}</td>
+                                 <td className="p-4 text-right">
+                                    <button onClick={() => handleGenerate(s, 'invoice')} className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:border-blue-300 hover:text-blue-600 transition-all flex items-center gap-1.5 ml-auto shadow-sm"><Plus size={14} /> Create</button>
+                                 </td>
+                              </tr>
+                           ))}
+                           {shipments.length === 0 && <tr><td colSpan="4" className="p-12 text-center text-slate-400 italic">No shipments found in registry.</td></tr>}
+                        </tbody>
+                     </table>
+                  </div>
+
+                  {/* MOBILE CARD VIEW */}
+                  <div className="md:hidden p-4 space-y-4 bg-slate-50">
+                     {shipments.map(s => (
+                        <div key={s.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-3">
+                           <div className="flex justify-between items-start">
+                              <div>
+                                 <span className="font-mono text-blue-600 font-bold text-sm">#{s.trackingNumber}</span>
+                                 <h4 className="font-bold text-slate-900">{s.consigneeName}</h4>
+                              </div>
+                              <span className="font-bold text-slate-900">${s.totalCost}</span>
+                           </div>
+                           <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                              <span className="text-xs text-slate-400">{s.consigneePhone}</span>
+                              <button onClick={() => handleGenerate(s, 'invoice')} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm active:scale-95 transition-all"><Plus size={14} /> Invoice</button>
+                           </div>
+                        </div>
+                     ))}
+                     {shipments.length === 0 && <div className="p-8 text-center text-slate-400 text-sm italic">No shipments found.</div>}
+                  </div>
+               </>
             ) : (
-               <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                     <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
-                        <tr>
-                           <th className="p-4">Container ID</th>
-                           <th className="p-4">Units</th>
-                           <th className="p-4 text-right">Total Volume</th>
-                           <th className="p-4 text-right">Action</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-100">
-                        {containerGroups.map(c => (
-                           <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="p-4 flex items-center gap-3 font-mono font-medium text-slate-900">
-                                 <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded flex items-center justify-center"><Container size={16} /></div>
-                                 {c.id}
-                              </td>
-                              <td className="p-4 text-slate-600">{c.count} items</td>
-                              <td className="p-4 text-right font-medium text-slate-900">{c.totalVol.toFixed(3)} m³</td>
-                              <td className="p-4 text-right">
-                                 <button onClick={() => handleGenerate({ ...c, trackingNumber: c.id, consigneeName: 'Container Manifest', consigneeAddress: 'Logistics Terminal Port' }, 'manifest')} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-slate-700 transition-all flex items-center gap-2 ml-auto shadow-sm"><Printer size={14} /> Print Manifest</button>
-                              </td>
+               <>
+                  {/* DESKTOP TABLE */}
+                  <div className="hidden md:block overflow-x-auto">
+                     <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                           <tr>
+                              <th className="p-4">Container ID</th>
+                              <th className="p-4">Units</th>
+                              <th className="p-4 text-right">Total Volume</th>
+                              <th className="p-4 text-right">Action</th>
                            </tr>
-                        ))}
-                        {containerGroups.length === 0 && <tr><td colSpan="4" className="p-12 text-center text-slate-400 italic">No containers active.</td></tr>}
-                     </tbody>
-                  </table>
-               </div>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                           {containerGroups.map(c => (
+                              <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-4 flex items-center gap-3 font-mono font-medium text-slate-900">
+                                    <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded flex items-center justify-center"><Container size={16} /></div>
+                                    {c.id}
+                                 </td>
+                                 <td className="p-4 text-slate-600">{c.count} items</td>
+                                 <td className="p-4 text-right font-medium text-slate-900">{c.totalVol.toFixed(3)} m³</td>
+                                 <td className="p-4 text-right">
+                                    <button onClick={() => handleGenerate({ ...c, trackingNumber: c.id, consigneeName: 'Container Manifest', consigneeAddress: 'Logistics Terminal Port' }, 'manifest')} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-slate-700 transition-all flex items-center gap-2 ml-auto shadow-sm"><Printer size={14} /> Print Manifest</button>
+                                 </td>
+                              </tr>
+                           ))}
+                           {containerGroups.length === 0 && <tr><td colSpan="4" className="p-12 text-center text-slate-400 italic">No containers active.</td></tr>}
+                        </tbody>
+                     </table>
+                  </div>
+
+                  {/* MOBILE CARD VIEW */}
+                  <div className="md:hidden p-4 space-y-4 bg-slate-50">
+                     {containerGroups.map(c => (
+                        <div key={c.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-3">
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><Container size={20} /></div>
+                              <div>
+                                 <span className="font-mono text-slate-900 font-bold block">{c.id}</span>
+                                 <span className="text-xs text-slate-500">{c.count} Items</span>
+                              </div>
+                              <div className="ml-auto text-right">
+                                 <span className="block font-bold text-slate-900">{c.totalVol.toFixed(3)} m³</span>
+                                 <span className="text-[10px] text-slate-400 uppercase font-bold">Volume</span>
+                              </div>
+                           </div>
+                           <button onClick={() => handleGenerate({ ...c, trackingNumber: c.id, consigneeName: 'Container Manifest', consigneeAddress: 'Logistics Terminal Port' }, 'manifest')} className="w-full bg-slate-900 text-white px-4 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"><Printer size={16} /> Print Manifest</button>
+                        </div>
+                     ))}
+                     {containerGroups.length === 0 && <div className="p-8 text-center text-slate-400 text-sm italic">No containers active.</div>}
+                  </div>
+               </>
             )}
          </div>
       </div>

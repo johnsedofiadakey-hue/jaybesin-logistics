@@ -395,7 +395,10 @@ export default function Admin({
                                  <span className="font-mono text-blue-600 font-bold text-lg">{s.trackingNumber}</span>
                                  <p className="font-bold text-slate-800 text-sm">{s.consigneeName}</p>
                               </div>
-                              <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold uppercase">{s.status}</span>
+                              {/* MOBILE STATUS SELECT FIX */}
+                              <select value={s.status} onChange={e => updateShipment(s.id, { status: e.target.value })} className="bg-slate-100 text-slate-700 px-2 py-1 rounded-lg text-[10px] font-bold uppercase outline-none border border-transparent focus:border-blue-500">
+                                 {LOGISTICS_STAGES.map(st => <option key={st} value={st}>{st}</option>)}
+                              </select>
                            </div>
 
                            <div className="grid grid-cols-2 gap-2 text-xs border-t border-slate-100 pt-3">
@@ -442,7 +445,8 @@ export default function Admin({
                         <div className="h-40 bg-slate-100 relative overflow-hidden">
                            {p.image && <img src={p.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                            <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded uppercase">{p.category}</div>
-                           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           {/* MOBILE HOVER FIX: Make edit button visible (or use a dedicated logic) */}
+                           <div className="absolute top-2 right-2 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <button onClick={() => openModal('product', 'edit', p)} className="bg-white p-1.5 rounded-lg text-blue-600 shadow-lg"><Edit2 size={14} /></button>
                            </div>
                         </div>
@@ -472,8 +476,9 @@ export default function Admin({
                         <div className="h-48 bg-slate-100 relative overflow-hidden">
                            {v.images?.[0] && <img src={v.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                            <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded">{v.condition}</div>
-                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => openModal('vehicle', 'edit', v)} className="bg-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2"><Edit2 size={14} /> Edit Specifications</button>
+                           {/* MOBILE HOVER FIX: Make edit button visible on mobile */}
+                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => openModal('vehicle', 'edit', v)} className="bg-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-lg"><Edit2 size={14} /> Edit Specifications</button>
                            </div>
                         </div>
                         <div className="p-4">
