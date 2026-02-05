@@ -607,12 +607,24 @@ export default function Admin({
             </div>
          </aside>
 
-         <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative bg-slate-50/50">
-            <div className="md:hidden h-16 bg-white border-b border-slate-200 flex items-center px-4 justify-between shrink-0 relative z-10">
-               <span className="font-semibold text-slate-900">Jay-Besin Logistics</span>
-               <button onClick={() => setSidebarOpen(true)} className="p-2 bg-slate-100 rounded text-slate-600"><Menu size={20} /></button>
+         <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative bg-slate-50">
+            {/* MOBILE HEADER: Sticky, Frosted Glass, Native Feel */}
+            <div className="md:hidden h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/60 flex items-center px-4 justify-between shrink-0 sticky top-0 z-20">
+               <div className="flex items-center gap-3">
+                  <button onClick={() => setSidebarOpen(true)} className="p-2.5 -ml-2 rounded-full text-slate-700 hover:bg-slate-100 active:scale-90 transition-all">
+                     <Menu size={22} strokeWidth={2.5} />
+                  </button>
+                  <span className="font-bold text-slate-900 tracking-tight text-lg">Jay-Besin</span>
+               </div>
+               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-xs ring-2 ring-white shadow-sm">
+                  {currentUser?.email?.[0].toUpperCase() || 'A'}
+               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">{renderContent()}</div>
+
+            {/* CONTENT AREA: Native scrolling momentum */}
+            <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-8 overscroll-y-contain -webkit-overflow-scrolling-touch hide-scrollbar selection:bg-blue-100">
+               {renderContent()}
+            </div>
          </main>
 
          {/* MODAL SYSTEM */}
