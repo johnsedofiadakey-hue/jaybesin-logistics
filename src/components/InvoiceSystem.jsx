@@ -398,6 +398,9 @@ const InvoiceEditor = ({ data, mode = "invoice", onBack }) => {
    const [currency, setCurrency] = useState('USD');
    const [docData, setDocData] = useState({ ...data, items: data.items || [] });
 
+   // Mobile UX State
+   const [activeSection, setActiveSection] = useState('client'); // client, items, finance
+
    const handleField = (field, val) => setDocData(p => ({ ...p, [field]: val }));
 
    const handleItem = (idx, field, val) => {
@@ -415,46 +418,122 @@ const InvoiceEditor = ({ data, mode = "invoice", onBack }) => {
    // Calculate Subtotal for Display
    const subtotal = docData.items.reduce((sum, item) => sum + (Number(item.totalCost) || 0), 0);
    const totalVol = docData.items.reduce((sum, item) => sum + (Number(item.cbm) || Number(item.totalVolume) || 0), 0);
+   const finalTotal = subtotal * (currency === 'GHS' ? invoiceSettings.currencyRate : 1);
 
    const inputClass = "bg-blue-50 border-b-2 border-blue-200 outline-none px-2 w-full focus:bg-white transition-all rounded-t-lg py-1";
 
+   // --- MOBILE ACCORDION COMPONENT ---
+   const MobileSection = ({ id, title, icon: Icon, children }) => (
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm transition-all text-slate-900">
+         <button onClick={() => setActiveSection(activeSection === id ? '' : id)} className={`w-full flex items-center justify-between p-4 ${activeSection === id ? 'bg-slate-50' : 'bg-white'}`}>
+            <div className="flex items-center gap-3 font-bold text-sm">
+               <div className={`p-2 rounded-lg ${activeSection === id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}><Icon size={18} /></div>
+               {title}
+            </div>
+            <ChevronDown size={16} className={`transition-transform duration-300 ${activeSection === id ? 'rotate-180 text-blue-600' : 'text-slate-300'}`} />
+         </button>
+         {activeSection === id && <div className="p-4 border-t border-slate-100 animate-in slide-in-from-top-2">{children}</div>}
+      </div>
+   );
+
    return (
       <div className="flex flex-col h-screen bg-slate-100">
+         {/* HEADER: Shared Desktop/Mobile */}
+         <div className="bg-white p-4 md:p-6 border-b flex justify-between items-center shadow-md sticky top-0 z-50">
+            <div className="flex items-center gap-4">
+               <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-slate-900"><ArrowLeft size={20} /> <span className="hidden md:inline font-bold">Back</span></button>
+               <div className="h-6 w-px bg-slate-200"></div>
+               <span className="font-black text-slate-900 text-sm tracking-tight">{docType} STUDIO</span>
+            </div>
 
-         <div className="bg-white p-6 border-b flex justify-between items-center shadow-md sticky top-0 z-50 uppercase font-black">
-            <div className="flex items-center gap-6">
-               <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all"><ArrowLeft size={20} /> Back</button>
-               <div className="h-8 w-px bg-slate-200"></div>
+            <div className="flex items-center gap-2">
+               {/* Mobile Actions */}
+               <div className="md:hidden flex gap-2">
+                  <button onClick={() => navigate('/preview')} className="bg-slate-100 p-2 rounded-lg text-slate-600"><Eye size={20} /></button>
+                  <button onClick={() => generateOfficialPDF(docData, invoiceSettings, docType, currency)} className="bg-blue-600 p-2 rounded-lg text-white shadow-lg"><Printer size={20} /></button>
+               </div>
 
-               <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black border-2 transition-all ${isEditing ? 'bg-green-600 text-white border-green-600 shadow-lg' : 'bg-white text-slate-700 border-slate-100 hover:bg-slate-50'}`}
-               >
-                  {isEditing ? <Save size={16} /> : <Edit size={16} />}
-                  {isEditing ? "Finalize Preview" : "Edit Registry"}
-               </button>
+               {/* Desktop Actions */}
+               <div className="hidden md:flex gap-4">
+                  <button onClick={() => setIsEditing(!isEditing)} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black border-2 ${isEditing ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700'}`}>
+                     {isEditing ? <Save size={16} /> : <Edit size={16} />} {isEditing ? "Finalize Preview" : "Edit Registry"}
+                  </button>
+                  <button onClick={() => generateOfficialPDF(docData, invoiceSettings, docType, currency)} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-black text-xs shadow-lg hover:bg-blue-700 flex items-center gap-2">
+                     <Printer size={16} /> EXPORT PDF
+                  </button>
+               </div>
+            </div>
+         </div>
 
-               <select value={docType} onChange={e => setDocType(e.target.value)} className="bg-slate-50 border-2 border-slate-100 font-black text-xs rounded-xl px-4 py-2.5 outline-none focus:border-blue-500">
+         {/* --- 1. MOBILE FORM VIEW (Small Screens) --- */}
+         <div className="md:hidden flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+
+            {/* Global Settings Card */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex gap-2 overflow-x-auto">
+               <select value={docType} onChange={e => setDocType(e.target.value)} className="flex-1 bg-slate-50 border border-slate-200 text-xs font-bold p-2 rounded-lg outline-none">
                   <option>COMMERCIAL INVOICE</option>
                   <option>BILL OF LADING</option>
                   <option>PACKING LIST</option>
-                  <option>CONTAINER MANIFEST</option>
                </select>
-               <button onClick={() => setCurrency(c => c === 'USD' ? 'GHS' : 'USD')} className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black shadow-lg italic hover:bg-blue-600 transition-all"><RefreshCcw size={14} /> {currency}</button>
+               <button onClick={() => setCurrency(c => c === 'USD' ? 'GHS' : 'USD')} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md">{currency}</button>
             </div>
 
-            {/* --- UPDATED PRINT BUTTON (TRIGGERS PDF ENGINE) --- */}
+            <MobileSection id="client" title="Client Information" icon={User}>
+               <div className="space-y-4">
+                  <div><label className="text-[10px] uppercase font-bold text-slate-400">Consignee Name</label><input value={docData.consigneeName} onChange={e => handleField('consigneeName', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold mt-1" /></div>
+                  <div><label className="text-[10px] uppercase font-bold text-slate-400">Phone Contact</label><input value={docData.consigneePhone} onChange={e => handleField('consigneePhone', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold mt-1" /></div>
+                  <div><label className="text-[10px] uppercase font-bold text-slate-400">Address</label><textarea rows={2} value={docData.consigneeAddress} onChange={e => handleField('consigneeAddress', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold mt-1" /></div>
+               </div>
+            </MobileSection>
+
+            <MobileSection id="items" title={`Cargo Registry (${docData.items.length})`} icon={Package}>
+               <div className="space-y-4">
+                  {docData.items.map((item, i) => (
+                     <div key={i} className="bg-slate-50 p-3 rounded-lg border border-slate-200 relative">
+                        <button onClick={() => removeItem(i)} className="absolute top-2 right-2 text-red-400 p-1"><X size={16} /></button>
+                        <textarea value={item.description} onChange={e => handleItem(i, 'description', e.target.value)} className="w-full bg-transparent border-b border-slate-200 text-sm font-bold mb-2 pb-1 outline-none placeholder:text-slate-300" placeholder="Item Description" rows={2} />
+                        <div className="grid grid-cols-3 gap-2">
+                           <div><label className="text-[9px] uppercase font-bold text-slate-400">Qty</label><input type="number" value={item.quantity} onChange={e => handleItem(i, 'quantity', e.target.value)} className="w-full p-1 text-xs font-bold border rounded bg-white" /></div>
+                           <div><label className="text-[9px] uppercase font-bold text-slate-400">Vol</label><input type="number" value={item.cbm} onChange={e => handleItem(i, 'cbm', e.target.value)} className="w-full p-1 text-xs font-bold border rounded bg-white" /></div>
+                           <div><label className="text-[9px] uppercase font-bold text-slate-400">Rate</label><input type="number" value={item.rate} onChange={e => handleItem(i, 'rate', e.target.value)} className="w-full p-1 text-xs font-bold border rounded bg-white" /></div>
+                        </div>
+                        <div className="mt-2 text-right text-xs font-black text-blue-600">
+                           Total: {formatMoney(Number(item.totalCost) || 0, 'USD')}
+                        </div>
+                     </div>
+                  ))}
+                  <button onClick={addItem} className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 border-blue-100 border-dashed hover:bg-blue-100">+ Add Cargo Item</button>
+               </div>
+            </MobileSection>
+
+            <MobileSection id="finance" title="Logistics & Totals" icon={DollarSign}>
+               <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div><label className="text-[10px] uppercase font-bold text-slate-400">Origin</label><input value={docData.origin} onChange={e => handleField('origin', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg text-xs font-bold mt-1" /></div>
+                     <div><label className="text-[10px] uppercase font-bold text-slate-400">Destination</label><input value={docData.destination} onChange={e => handleField('destination', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg text-xs font-bold mt-1" /></div>
+                     <div className="col-span-2"><label className="text-[10px] uppercase font-bold text-slate-400">Container ID</label><input value={docData.containerId} onChange={e => handleField('containerId', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg text-xs font-bold mt-1 font-mono" /></div>
+                  </div>
+               </div>
+            </MobileSection>
+         </div>
+
+         {/* MOBILE STICKY FOOTER */}
+         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
+            <div className="flex justify-between items-center mb-3">
+               <span className="text-xs font-bold text-slate-400 uppercase">Grand Total ({currency})</span>
+               <span className="text-xl font-black text-slate-900">{formatMoney(finalTotal, currency)}</span>
+            </div>
             <button
                onClick={() => generateOfficialPDF(docData, invoiceSettings, docType, currency)}
-               className="bg-blue-600 text-white px-10 py-3 rounded-xl font-black text-sm shadow-xl hover:bg-blue-700 flex items-center gap-3 italic animate-pulse hover:animate-none"
+               className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-               <Printer size={20} /> PRINT OFFICIAL PDF
+               <Printer size={18} /> GENERATE PDF
             </button>
          </div>
 
-         <div className="flex-1 overflow-y-auto p-12 bg-slate-200/50">
+         {/* --- 2. DESKTOP PAPER VIEW (Large Screens) --- */}
+         <div className="hidden md:block flex-1 overflow-y-auto p-12 bg-slate-200/50">
             <div className="bg-white max-w-[210mm] min-h-[297mm] mx-auto shadow-[0_40px_100px_rgba(0,0,0,0.1)] p-16 relative text-slate-900 border-[20px] border-white">
-
                {/* INVOICE HEADER */}
                <div className="flex justify-between items-start mb-16 border-b-8 border-slate-900 pb-10">
                   <div className="flex gap-8">
@@ -554,7 +633,7 @@ const InvoiceEditor = ({ data, mode = "invoice", onBack }) => {
                         <td className="py-6 text-right font-black italic text-slate-600 underline decoration-slate-200 underline-offset-8">{totalVol.toFixed(3)} m³</td>
                         {isEditing && <td></td>}
                         <td className="py-6 text-right font-black text-3xl italic tracking-tighter text-blue-600">
-                           {formatMoney(subtotal * (currency === 'GHS' ? invoiceSettings.currencyRate : 1), currency)}
+                           {formatMoney(finalTotal, currency)}
                         </td>
                         {isEditing && <td></td>}
                      </tr>
