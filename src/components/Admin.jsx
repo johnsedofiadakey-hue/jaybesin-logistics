@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
    LayoutDashboard, Database, Car, Settings, Search, Plus,
    Save, X, Menu, Trash2, Edit2, DollarSign,
@@ -58,9 +58,78 @@ export default function Admin({
    const [sidebarOpen, setSidebarOpen] = useState(false);
    const [selectedIds, setSelectedIds] = useState([]);
    const [bulkStatus, setBulkStatus] = useState('');
+   const [quickActionOpen, setQuickActionOpen] = useState(false);
+   const [quickActionAnchor, setQuickActionAnchor] = useState(null);
+   const longPressTimerRef = useRef(null);
+   const longPressHandledRef = useRef(false);
+
+   const mobileTabs = [
+      { id: 'overview', label: 'Home', icon: LayoutDashboard },
+      { id: 'manifest', label: 'Manifest', icon: Database },
+      { id: 'invoices', label: 'Billing', icon: Receipt },
+      { id: 'inbox', label: 'Inbox', icon: MessageSquare }
+   ];
+
+   const quickActionSource = mobileTabs.find((tab) => tab.id === quickActionAnchor)?.label || quickActionAnchor;
 
    // --- SOURCING STATE ---
    const [currency, setCurrency] = useState('USD'); // Toggle USD/GHS
+
+   const nowLabel = new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+   }).format(new Date());
+
+   const quickActions = [
+      {
+         id: 'new-shipment',
+         label: 'New Shipment',
+         action: () => {
+            setActiveTab('manifest');
+            openModal('manifest', 'create');
+         }
+      },
+      {
+         id: 'add-product',
+         label: 'Add Product',
+         action: () => {
+            setActiveTab('mart');
+            openModal('product', 'create');
+         }
+      },
+      {
+         id: 'add-vehicle',
+         label: 'Add Vehicle',
+         action: () => {
+            setActiveTab('vehicle');
+            openModal('vehicle', 'create');
+         }
+      }
+   ];
+
+   const startLongPress = (tabId) => {
+      longPressHandledRef.current = false;
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = setTimeout(() => {
+         longPressHandledRef.current = true;
+         setQuickActionAnchor(tabId);
+         setQuickActionOpen(true);
+      }, 450);
+   };
+
+   const cancelLongPress = () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+   };
+
+   const handleQuickAction = (action) => {
+      action();
+      setQuickActionOpen(false);
+      setQuickActionAnchor(null);
+      longPressHandledRef.current = false;
+   };
 
    // --- SETTINGS BUFFER (Local State) ---
    const [localSettings, setLocalSettings] = useState({
@@ -310,17 +379,34 @@ export default function Admin({
    const renderContent = () => {
       switch (activeTab) {
          case 'overview': return (
-            <div className="space-y-6 animate-in fade-in">
-               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-4 md:space-y-6 animate-in fade-in">
+               <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                     <div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Now</p>
+                        <p className="text-sm md:text-base font-bold text-slate-900">{nowLabel}</p>
+                        <p className="text-xs text-slate-500 mt-1">{stats.activePackages} active shipments • {stats.inboxCount} inbox signals</p>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest bg-green-50 text-green-700 px-2.5 py-1 rounded-full">Online</span>
+                     </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                     <button onClick={() => { setActiveTab('manifest'); openModal('manifest', 'create'); }} className="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl">New Shipment</button>
+                     <button onClick={() => { setActiveTab('mart'); openModal('product', 'create'); }} className="bg-slate-100 text-slate-700 text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl">Add Product</button>
+                     <button onClick={() => { setActiveTab('vehicle'); openModal('vehicle', 'create'); }} className="bg-slate-100 text-slate-700 text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl">Add Vehicle</button>
+                  </div>
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
                   <StatCard label="Total Shipments" value={stats.activePackages} icon={Package} color="blue" />
                   <StatCard label="Total CBM" value={stats.totalVolume.toFixed(2)} icon={Container} color="slate" />
                   <StatCard label="Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} icon={DollarSign} color="green" />
                   <StatCard label="Messages" value={stats.inboxCount} icon={MessageSquare} color="blue" />
                </div>
 
-               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-4 mb-6">
-                     <div className="p-3 bg-green-50 text-green-600 rounded-xl"><Globe size={24} /></div>
+               <div className="bg-white p-5 md:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-4 mb-4 md:mb-6">
+                     <div className="p-3 bg-green-50 text-green-600 rounded-xl"><Globe size={20} className="md:hidden" /><Globe size={24} className="hidden md:block" /></div>
                      <div><h3 className="font-bold text-slate-900">System Status</h3><p className="text-xs text-slate-500">Global Synchronized Network</p></div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -332,9 +418,9 @@ export default function Admin({
          );
 
          case 'manifest': return (
-            <div className="space-y-6 animate-in fade-in">
+            <div className="space-y-4 md:space-y-6 animate-in fade-in">
                <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 pb-4 gap-4">
-                  <h2 className="text-xl font-bold text-slate-800">Shipment Manifest</h2>
+                  <h2 className="text-lg md:text-xl font-bold text-slate-800">Shipment Manifest</h2>
                   <button onClick={() => openModal('manifest', 'create')} className="w-full md:w-auto bg-blue-600 text-white px-5 py-2 rounded-lg font-bold text-sm flex justify-center items-center gap-2 hover:bg-blue-700 transition-all shadow-md active:scale-95"><Plus size={16} /> New Entry</button>
                </div>
 
@@ -387,9 +473,9 @@ export default function Admin({
                   </div>
 
                   {/* MOBILE CARD VIEW (Shown ONLY on Mobile) */}
-                  <div className="md:hidden bg-slate-50 p-4 space-y-4">
+                  <div className="md:hidden bg-slate-50 p-3 space-y-3">
                      {filteredShipments.map(s => (
-                        <div key={s.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                     <div key={s.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
                            <div className="flex justify-between items-start">
                               <div>
                                  <span className="font-mono text-blue-600 font-bold text-lg">{s.trackingNumber}</span>
@@ -421,8 +507,8 @@ export default function Admin({
          );
 
          case 'mart': return (
-            <div className="space-y-8 animate-in fade-in pb-20">
-               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="space-y-6 md:space-y-8 animate-in fade-in pb-20">
+               <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
                   <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Category Hub</h3>
                   <div className="flex flex-col sm:flex-row gap-2 mb-4">
                      <input className="flex-1 p-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="New Category Name..." value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} />
@@ -432,14 +518,14 @@ export default function Admin({
                </div>
 
                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4">
-                  <h2 className="text-xl font-bold text-slate-800">Inventory Management</h2>
+                  <h2 className="text-lg md:text-xl font-bold text-slate-800">Inventory Management</h2>
                   <div className="flex gap-4 w-full sm:w-auto">
                      <button onClick={() => setCurrency(c => c === 'USD' ? 'GHS' : 'USD')} className="flex-1 sm:flex-none bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold text-xs hover:bg-slate-200 transition-all flex items-center justify-center gap-2"><RefreshCw size={14} /> {currency}</button>
                      <button onClick={() => openModal('product', 'create')} className="flex-1 sm:flex-none bg-blue-600 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 shadow-md"><Plus size={16} /> Add Product</button>
                   </div>
                </div>
                {/* RESPONSIVE GRID: 1 col mobile, 2 col tablet, 4 col desktop */}
-               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                   {products.map(p => (
                      <div key={p.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all group">
                         <div className="h-40 bg-slate-100 relative overflow-hidden">
@@ -467,10 +553,10 @@ export default function Admin({
          );
 
          case 'vehicle': return (
-            <div className="space-y-6 animate-in fade-in pb-20">
-               <div className="flex justify-between items-center pb-4 border-b border-slate-200"><h2 className="text-xl font-bold text-slate-800">Vehicle Studio</h2><button onClick={() => openModal('vehicle', 'create')} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-blue-700"><Plus size={16} /> Add Vehicle</button></div>
+            <div className="space-y-4 md:space-y-6 animate-in fade-in pb-20">
+               <div className="flex justify-between items-center pb-4 border-b border-slate-200"><h2 className="text-lg md:text-xl font-bold text-slate-800">Vehicle Studio</h2><button onClick={() => openModal('vehicle', 'create')} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-blue-700"><Plus size={16} /> Add Vehicle</button></div>
                {/* RESPONSIVE GRID: 1 col mobile, 3 col desktop */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                   {vehicles.map(v => (
                      <div key={v.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all group">
                         <div className="h-48 bg-slate-100 relative overflow-hidden">
@@ -500,9 +586,9 @@ export default function Admin({
 
          case 'inbox': return (
             <div className="space-y-4 animate-in fade-in pb-20">
-               <h2 className="text-xl font-bold text-slate-800 border-b border-slate-200 pb-4">Communication Hub</h2>
+               <h2 className="text-lg md:text-xl font-bold text-slate-800 border-b border-slate-200 pb-4">Communication Hub</h2>
                {messages.map(m => (
-                  <div key={m.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <div key={m.id} className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
                      <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-2">
                         <div><h4 className="font-bold text-slate-900">{m.name}</h4><p className="text-xs text-slate-500">{m.email} • {m.phone}</p></div>
                         <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">{m.subject}</span>
@@ -522,12 +608,12 @@ export default function Admin({
          );
 
          case 'settings':
-            if (!isSuperAdmin) return <div className="p-8 text-center text-red-500">Access Denied. Super Admin Privilege Required.</div>;
+            if (!isSuperAdmin) return <div className="p-4 md:p-8 text-center text-red-500">Access Denied. Super Admin Privilege Required.</div>;
             return (
-               <div className="max-w-4xl space-y-8 pb-20 animate-in fade-in">
-                  <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
+               <div className="max-w-4xl space-y-6 md:space-y-8 pb-20 animate-in fade-in">
+                  <div className="bg-white p-4 md:p-8 rounded-xl border border-slate-200 shadow-sm">
                      <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-wider border-b border-slate-100 pb-2">Terminal Identity</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                         <div className="space-y-2"><label className="text-xs font-bold text-slate-500">Logo</label><div className="h-32 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center relative hover:border-blue-500 group">{localSettings.logo ? <img src={localSettings.logo} className="h-full object-contain p-4 group-hover:scale-110 transition-transform" /> : <span className="text-xs text-slate-400">Upload</span>}<input type="file" onChange={e => handleFileUpload(e, 'logo', 'settings')} className="absolute inset-0 opacity-0 cursor-pointer" /></div></div>
                         <div className="space-y-2"><label className="text-xs font-bold text-slate-500">Hero Image</label><div className="h-32 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center relative hover:border-blue-500 group">{localSettings.heroImg ? <img src={localSettings.heroImg} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" /> : <span className="text-xs text-slate-400">Upload</span>}<input type="file" onChange={e => handleFileUpload(e, 'heroImg', 'settings')} className="absolute inset-0 opacity-0 cursor-pointer" /></div></div>
                         <FormInput label="Site Display Name" value={localSettings.heroTitle} onChange={v => handleSettingChange('heroTitle', v)} />
@@ -538,9 +624,9 @@ export default function Admin({
                         <FormInput label="Physical HQ Address" value={localSettings.companyAddress} onChange={v => handleSettingChange('companyAddress', v)} />
                      </div>
                   </div>
-                  <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="bg-white p-4 md:p-8 rounded-xl border border-slate-200 shadow-sm">
                      <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-wider border-b border-slate-100 pb-2">Logistics Parameters</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <FormInput label="Standard Sea Rate ($/CBM)" value={localSettings.seaRate} onChange={v => handleSettingChange('seaRate', v)} />
                         <FormInput label="Next Groupage Loading" value={localSettings.nextLoadingDate} onChange={v => handleSettingChange('nextLoadingDate', v)} />
                         <FormInput label="China Sea Warehouse Addr" value={localSettings.chinaSeaAddr} onChange={v => handleSettingChange('chinaSeaAddr', v)} />
@@ -564,7 +650,7 @@ export default function Admin({
    };
 
    return (
-      <div className="flex h-screen bg-[#f8fafc] font-sans text-slate-900 overflow-hidden">
+      <div className="flex h-screen h-[100dvh] bg-[#f8fafc] font-sans text-slate-900 overflow-hidden">
          {/* MOBILE BACKDROP: Close sidebar when clicking outside */}
          {sidebarOpen && (
             <div
@@ -574,8 +660,8 @@ export default function Admin({
          )}
 
          {/* SIDEBAR: Slide-in on Mobile, Fixed on Desktop */}
-         <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 flex flex-col transition-transform duration-300 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-xl md:shadow-none`}>
-            <div className="h-16 flex items-center px-6 border-b border-slate-800 justify-between md:justify-start bg-slate-950">
+         <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 flex flex-col transition-transform duration-300 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-xl md:shadow-none pt-[env(safe-area-inset-top)] md:pt-0`}>
+            <div className="min-h-[4rem] flex items-center px-6 border-b border-slate-800 justify-between md:justify-start bg-slate-950">
                <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">JB</div>
                   <div className="font-semibold text-white tracking-tight">Jay-Besin</div>
@@ -614,7 +700,7 @@ export default function Admin({
 
          <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative bg-slate-50">
             {/* MOBILE HEADER: Sticky, Frosted Glass, Native Feel */}
-            <div className="md:hidden h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/60 flex items-center px-4 justify-between shrink-0 sticky top-0 z-20">
+            <div className="md:hidden bg-white/90 backdrop-blur-md border-b border-slate-200/60 flex items-center px-4 justify-between shrink-0 sticky top-0 z-40 pt-[env(safe-area-inset-top)] min-h-[4rem]">
                <div className="flex items-center gap-3">
                   <button onClick={() => setSidebarOpen(true)} className="p-2.5 -ml-2 rounded-full text-slate-700 hover:bg-slate-100 active:scale-90 transition-all">
                      <Menu size={22} strokeWidth={2.5} />
@@ -627,15 +713,69 @@ export default function Admin({
             </div>
 
             {/* CONTENT AREA: Native scrolling momentum */}
-            <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-8 overscroll-y-contain -webkit-overflow-scrolling-touch hide-scrollbar selection:bg-blue-100">
+            <div className="flex-1 overflow-y-auto p-4 pb-[calc(8rem+env(safe-area-inset-bottom))] md:p-8 overscroll-y-contain -webkit-overflow-scrolling-touch hide-scrollbar selection:bg-blue-100">
                {renderContent()}
+            </div>
+
+            {quickActionOpen && (
+               <div className="md:hidden fixed inset-0 z-40">
+                  <div className="absolute inset-0 bg-slate-900/30" onClick={() => { setQuickActionOpen(false); setQuickActionAnchor(null); longPressHandledRef.current = false; }} />
+                  <div className="absolute left-0 right-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] px-4">
+                     <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Quick Actions</p>
+                           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Hold</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                           {quickActions.map((qa) => (
+                              <button
+                                 key={qa.id}
+                                 onClick={() => handleQuickAction(qa.action)}
+                                 className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl"
+                              >
+                                 {qa.label}
+                              </button>
+                           ))}
+                        </div>
+                        {quickActionSource && (
+                           <div className="mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Triggered from {quickActionSource}</div>
+                        )}
+                     </div>
+                  </div>
+               </div>
+            )}
+
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/70 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+               <div className="grid grid-cols-4 gap-2">
+                  {mobileTabs.map((tab) => (
+                     <button
+                        key={tab.id}
+                        onPointerDown={() => startLongPress(tab.id)}
+                        onPointerUp={cancelLongPress}
+                        onPointerLeave={cancelLongPress}
+                        onPointerCancel={cancelLongPress}
+                        onClick={() => {
+                           if (longPressHandledRef.current) {
+                              longPressHandledRef.current = false;
+                              return;
+                           }
+                           setActiveTab(tab.id);
+                           setSidebarOpen(false);
+                        }}
+                        className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold uppercase tracking-wide transition-all ${activeTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}
+                     >
+                        <tab.icon size={18} className={activeTab === tab.id ? 'text-blue-300' : 'text-slate-400'} />
+                        <span>{tab.label}</span>
+                     </button>
+                  ))}
+               </div>
             </div>
          </main>
 
          {/* MODAL SYSTEM */}
          {isModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
-               <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="fixed inset-0 bg-slate-900/50 flex items-stretch md:items-center justify-center z-50 p-0 md:p-4 backdrop-blur-sm animate-in fade-in">
+               <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl flex flex-col shadow-2xl overflow-hidden rounded-none md:rounded-2xl">
                   <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50"><h3 className="font-bold text-lg text-slate-900 capitalize">{modalMode} {entityType}</h3><button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700"><X size={20} /></button></div>
                   <div className="p-6 md:p-8 overflow-y-auto flex-1 space-y-6">
                      {entityType === 'manifest' && (
@@ -750,7 +890,7 @@ const SidebarLink = ({ id, icon: Icon, label, active, setActive, badge }) => (
 const StatCard = ({ label, value, icon: Icon, color }) => {
    const colors = { blue: 'bg-blue-50 text-blue-600', green: 'bg-green-50 text-green-600', slate: 'bg-slate-50 text-slate-600', purple: 'bg-purple-50 text-purple-600' };
    return (
-      <div className="bg-white p-6 border border-slate-200 rounded-2xl shadow-sm hover:border-blue-200 transition-colors">
+      <div className="bg-white p-4 md:p-6 border border-slate-200 rounded-2xl shadow-sm hover:border-blue-200 transition-colors">
          <div className={`p-2 rounded-lg ${colors[color] || 'bg-slate-50'} mb-3 w-fit`}><Icon size={20} /></div>
          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>
          <p className="text-2xl font-bold text-slate-900">{value}</p>
